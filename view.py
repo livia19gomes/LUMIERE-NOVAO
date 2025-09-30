@@ -58,8 +58,9 @@ def cadastro_usuario():
     if not data:
         return jsonify({"error": "JSON vazio"}), 400
 
-    campos = ['nome', 'email', 'telefone', 'senha', 'categoria', 'tipo']
-    faltando = [campo for campo in campos if not data.get(campo)]
+    # campos básicos obrigatórios (tipo NÃO está aqui)
+    campos_basicos = ['nome', 'email', 'telefone', 'senha']
+    faltando = [campo for campo in campos_basicos if not data.get(campo)]
     if faltando:
         return jsonify({"error": f"Campos obrigatórios faltando: {', '.join(faltando)}"}), 400
 
@@ -67,9 +68,18 @@ def cadastro_usuario():
     email = data['email']
     telefone = data['telefone']
     senha = data['senha']
-    categoria = data['categoria']
-    tipo = data['tipo']
+    tipo = data.get('tipo', 'usuario').lower()   # se não vier, assume "usuario"
+    categoria = data.get('categoria')
 
+    # regra: profissional precisa de categoria
+    if tipo == 'profissional' and not categoria:
+        return jsonify({"error": "Campo 'categoria' é obrigatório para profissionais"}), 400
+
+    # se for adm ou usuario, categoria não é necessária
+    if tipo in ['adm', 'usuario']:
+        categoria = None
+
+    # valida senha
     senha_check = validar_senha(senha)
     if senha_check is not True:
         return senha_check
@@ -95,9 +105,11 @@ def cadastro_usuario():
         'usuario': {
             'nome': nome,
             'email': email,
-            'tipo': tipo
+            'tipo': tipo,
+            'categoria': categoria
         }
     }), 200
+
 
 @app.route('/cadastro', methods=['GET'])
 def lista_cadastro():
